@@ -18,8 +18,6 @@ library(tmap)            # visualisation cartographique
 # Partie 2 : Import et nettoyage des données
 ##################################################
 
-setwd("~/Desktop/R-stat/TP2")
-
 # 2.1 Import brut du fichier 
 # Adapter le chemin vers ton fichier
 raw_pauv <- read.csv2("pauvrete.csv",
@@ -345,7 +343,7 @@ ggplot(pauv, aes(x = Taux_enquete, y = Taux_recensement)) +
 # 6.1 Import du fichier géographique des gouvernorats 
 # Adapter le chemin vers ton GeoJSON / shapefile
 # Exemple avec le GeoJSON de riatelab/tunisie : TN-gouvernorats.geojson
-gouv_sf <- st_read("~/Desktop/R-stat/TP2/decoupage.geojson.json")  # chemin à adapter
+gouv_sf <- st_read("decoupage.geojson.json")  # chemin à adapter
 
 # Vérifier les colonnes de noms de gouvernorats
 names(gouv_sf)
