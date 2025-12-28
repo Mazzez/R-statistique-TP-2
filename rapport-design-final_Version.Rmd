@@ -1,0 +1,1037 @@
+---
+title: "Analyse des Disparités de Pauvreté en Tunisie"
+subtitle: "Comparaison Enquête Nationale vs Recensement Général (2023)"
+author: "Mazzez Mohamed Amine"
+date: "`r Sys.Date()`"
+output:  
+  html_document:  
+    toc: true
+    toc_float: true
+    toc_depth: 2
+    theme: cerulean # tu peux le Changer par "flatly", "cosmo", "darkly", "yeti", "superhero", "united", etc.
+    highlight: pygments
+    code_folding: show
+    number_sections: true
+    self_contained: true
+    css: null
+---
+
+<style>
+/* ============================================
+   DESIGN SYSTEM - VARIABLES
+   ============================================ */
+:root {
+  --primary:   #0F4C75;
+  --primary-light: #3282B8;
+  --accent:  #00D9FF;
+  --success: #06D6A0;
+  --warning: #FF9F1C;
+  --danger: #EF476F;
+  --dark: #1a1a1a;
+  --light: #f8f9fa;
+  --border: #e9ecef;
+  --text:   #2d3748;
+  --text-light: #718096;
+}
+
+* {
+  margin: 0;
+  padding:  0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  font-family:  'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  color: var(--text);
+  background:   linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  line-height: 1.7;
+  font-weight: 400;
+}
+
+/* ============================================
+   LAYOUT PRINCIPAL
+   ============================================ */
+.container-fluid {
+  max-width: 100%;
+  padding:  0;
+  overflow-x: hidden;
+}
+
+. row {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.col-md-9 {
+  flex:   0 0 100%;
+  padding: 0;
+}
+
+/* ============================================
+   EN-TÊTES & TYPOGRAPHIE
+   ============================================ */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.8em;
+}
+
+h1 {
+  font-size: 3. 2em;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  padding: 3em 2. 5em;
+  margin: 0;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(15, 76, 117, 0.2);
+  text-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 0 0 20px 20px;
+}
+
+. subtitle {
+  font-size: 1.6em;
+  color: var(--text-light);
+  text-align: center;
+  padding: 1.2em 2.5em;
+  font-style: italic;
+  background: linear-gradient(to bottom, rgba(50, 130, 184, 0.08), transparent);
+  margin: 0;
+  border-bottom: 3px solid var(--accent);
+}
+
+h2 {
+  font-size: 2.3em;
+  color: white;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  padding: 1em 2.5em;
+  margin: 2em 0 0.6em 0;
+  border-radius:  8px;
+  box-shadow:  0 4px 15px rgba(15, 76, 117, 0.15);
+}
+
+h3 {
+  font-size: 1.6em;
+  color: var(--primary);
+  margin:  1.5em 2.5em 0.6em 2.5em;
+  border-left: 5px solid var(--accent);
+  padding-left: 1em;
+}
+
+h4, h5, h6 {
+  color: var(--primary-light);
+  margin: 1.2em 2.5em 0.4em 2.5em;
+}
+
+p {
+  margin: 1em 2.5em;
+  text-align: justify;
+  line-height: 1.8;
+}
+
+/* ============================================
+   TABLE DES MATIÈRES - CORRIGÉE
+   ============================================ */
+#TOC {
+  position: fixed !important;
+  top: 20px;
+  left: 20px;
+  width: 280px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 2em;
+  box-shadow: 0 8px 32px rgba(15, 76, 117, 0.2);
+  z-index: 1000;
+}
+
+
+#TOC h2 {
+  color: white;
+  border:  none;
+  background: transparent;
+  margin: 0 0 1.5em 0;
+  padding: 0;
+  font-size: 1.4em;
+  box-shadow: none;
+  padding-bottom: 1em;
+  border-bottom:  3px solid var(--accent);
+}
+
+#TOC ul {
+  list-style: none;
+  margin: 0;
+  padding:  0;
+}
+
+#TOC li {
+  margin: 0.6em 0;
+  font-size: 0.95em;
+  list-style: none;
+  line-height: 1.4;
+}
+
+#TOC li: before {
+  content: "▸ ";
+  color: var(--accent);
+  font-weight: bold;
+  margin-right: 0.6em;
+}
+
+#TOC a {
+  color:  rgba(255, 255, 255, 0.95);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border-bottom: 2px solid transparent;
+  display: block;
+  padding: 0.2em 0;
+}
+
+#TOC a: hover {
+  color: var(--accent);
+  border-bottom:  2px solid var(--accent);
+  padding-left: 0.3em;
+}
+
+#TOC ul ul {
+  margin-left: 1.2em;
+  margin-top: 0.4em;
+}
+
+/* ============================================
+   BLOCS DE CONTENU
+   ============================================ */
+. block-info, .block-success, .block-warning, .block-danger {
+  margin:  2em 2.5em;
+  padding: 2em;
+  border-radius:  12px;
+  border-left: 6px solid;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.block-info {
+  border-left-color: var(--primary);
+  background: linear-gradient(135deg, rgba(15, 76, 117, 0.08) 0%, rgba(50, 130, 184, 0.04) 100%);
+}
+
+.block-success {
+  border-left-color: var(--success);
+  background: linear-gradient(135deg, rgba(6, 214, 160, 0.08) 0%, rgba(6, 214, 160, 0.04) 100%);
+}
+
+.block-warning {
+  border-left-color: var(--warning);
+  background: linear-gradient(135deg, rgba(255, 159, 28, 0.08) 0%, rgba(255, 159, 28, 0.04) 100%);
+}
+
+.block-danger {
+  border-left-color: var(--danger);
+  background: linear-gradient(135deg, rgba(239, 71, 111, 0.08) 0%, rgba(239, 71, 111, 0.04) 100%);
+}
+
+.block-info: hover, .block-success:hover, .block-warning:hover, .block-danger:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+/* ============================================
+   TABLEAUX
+   ============================================ */
+table {
+  width: calc(100% - 5em);
+  margin: 2em 2.5em;
+  border-collapse: collapse;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  background: white;
+  font-size: 0.95em;
+}
+
+thead {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  font-weight: 700;
+}
+
+th {
+  padding: 1.5em 1.2em;
+  text-align:  left;
+  letter-spacing: 0.5px;
+}
+
+td {
+  padding: 1.2em;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr:hover {
+  background:  linear-gradient(90deg, rgba(15, 76, 117, 0.05) 0%, transparent 100%);
+}
+
+tbody tr: nth-child(even) {
+  background: rgba(0, 0, 0, 0.01);
+}
+
+/* ============================================
+   CODE & SYNTAXE
+   ============================================ */
+code {
+  background: #f4f7f9;
+  color: var(--danger);
+  padding: 0.4em 0.8em;
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size:  0.9em;
+  border: 1px solid var(--border);
+}
+
+pre {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #e2e8f0;
+  padding: 2em;
+  border-radius:  12px;
+  overflow-x:  auto;
+  margin: 2em 2.5em;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border-left: 6px solid var(--accent);
+  line-height: 1.6;
+}
+
+pre code {
+  background:  transparent;
+  color: #e2e8f0;
+  padding: 0;
+  border:  none;
+}
+
+/* ============================================
+   LISTES
+   ============================================ */
+ul, ol {
+  margin: 1.5em 2.5em;
+  padding-left: 3em;
+}
+
+li {
+  margin-bottom: 0.8em;
+  color: var(--text);
+  line-height: 1.8;
+}
+
+/* ============================================
+   IMAGES & FIGURES
+   ============================================ */
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow:  0 8px 24px rgba(0, 0, 0, 0.12);
+  margin: 2em 2.5em;
+  transition: transform 0.3s ease;
+}
+
+img:hover {
+  transform: translateY(-4px);
+}
+
+/* ============================================
+   LIENS
+   ============================================ */
+a {
+  color: var(--primary-light);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+a:hover {
+  color:  var(--accent);
+  border-bottom: 2px solid var(--accent);
+}
+
+/* ============================================
+   RÉSULTATS
+   ============================================ */
+.results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2em;
+  margin: 2em 2.5em;
+  padding: 2em;
+  background: linear-gradient(135deg, rgba(6, 214, 160, 0.08) 0%, rgba(50, 130, 184, 0.08) 100%);
+  border-radius: 12px;
+  border:  2px solid rgba(6, 214, 160, 0.2);
+}
+
+.result-item {
+  background: white;
+  padding: 2em;
+  border-radius:  12px;
+  border-top: 5px solid var(--success);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.result-item:hover {
+  transform:  translateY(-8px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+}
+
+.result-item h4 {
+  color: var(--success);
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin:  0 0 1em 0;
+  font-weight: 700;
+}
+
+.result-item p {
+  margin: 0;
+  font-size: 2. 2em;
+  color: var(--primary);
+  font-weight: 800;
+}
+
+/* ============================================
+   ÉQUATIONS
+   ============================================ */
+. equation {
+  background: linear-gradient(135deg, rgba(15, 76, 117, 0.12) 0%, rgba(50, 130, 184, 0.08) 100%);
+  border-left: 6px solid var(--accent);
+  padding: 2. 5em;
+  margin: 2.5em;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 1.2em;
+  font-family: 'Times New Roman', serif;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+footer {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  padding: 3em 2.5em;
+  margin-top: 4em;
+  text-align: center;
+  font-size: 0.95em;
+  border-top:  6px solid var(--accent);
+}
+
+footer p {
+  margin: 0. 8em 0;
+  line-height: 1.8;
+}
+
+footer strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform:  translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+table, . result-item, img, .block-info, .block-success {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+h2, h3 {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2em;
+    padding: 2em 1em;
+  }
+
+  h2 {
+    font-size: 1.6em;
+    padding: 0.8em 1em;
+    margin: 1em 0 0.5em 0;
+  }
+
+  h3 {
+    margin: 1em 1em 0.4em 1em;
+  }
+
+  p {
+    margin: 0.8em 1em;
+    text-align: left;
+  }
+
+  #TOC {
+    max-width: 100%;
+    margin: 1em;
+    position: static;
+  }
+
+  table {
+    width: calc(100% - 2em);
+    margin: 1em;
+    font-size: 0.85em;
+  }
+
+  . results {
+    grid-template-columns: 1fr;
+  }
+
+  pre {
+    margin: 1em;
+    font-size: 0.8em;
+  }
+}
+</style>
+
+# Introduction
+
+## Contexte
+
+Ce rapport présente une analyse statistique et géographique approfondie des **taux de pauvreté en Tunisie** au niveau des **24 gouvernorats**. L'objectif principal est de comparer deux sources de données majeures : 
+
+<div class="block-info">
+
+### 📊 Données Comparées
+
+1. **L'Enquête Nationale sur le Budget, la Consommation et le Niveau de Vie** (méthode par échantillon)
+2. **Le Recensement Général de la Population et de l'Habitat** (méthode exhaustive)
+
+</div>
+
+## Objectifs
+
+- ✓ Évaluer la **cohérence statistique** entre les deux mesures
+- ✓ Identifier les **gouvernorats où les écarts sont significatifs**
+- ✓ Cartographier les **disparités spatiales de la pauvreté**
+- ✓ Analyser les **5 Districts administratifs**
+- ✓ Tester l'existence d'un **biais systématique** entre les sources
+
+---
+
+# Préparation de l'Environnement
+
+```{r packages}
+# Nettoyage de la session
+rm(list = ls())
+graphics.off()
+
+# Chargement des packages
+library(tidyverse)  # Manipulation de données et visualisation
+library(sf)         # Données spatiales
+library(tmap)       # Cartographie thématique
+library(broom)      # Export des résultats de régression
+
+# Désactiver s2 pour éviter les erreurs géométriques
+sf::sf_use_s2(FALSE)
+```
+
+---
+
+# Import et Nettoyage des Données
+
+## Import des données brutes
+
+```{r import}
+# Import du fichier CSV
+raw_pauv <- read.csv2("pauvrete.csv", 
+                      sep = ";", 
+                      dec = ".", 
+                      header = FALSE, 
+                      stringsAsFactors = FALSE)
+
+# Aperçu
+head(raw_pauv, 10)
+dim(raw_pauv)
+```
+
+## Construction du DataFrame propre
+
+```{r cleaning}
+# Suppression des 3 premières lignes (en-têtes complexes)
+pauv <- raw_pauv[-c(1:3), ]
+
+# Renommage des colonnes
+colnames(pauv) <- c("Gouvernorat", 
+                    "Taux_enquete", "Ecart_type_enquete", "IC95_bas", "IC95_haut", 
+                    "Taux_recensement", "Ecart_type_recensement", "Diff_absolue")
+
+# Conversion des types
+pauv <- pauv %>%
+  mutate(
+    Gouvernorat = factor(Gouvernorat),
+    across(Taux_enquete:Diff_absolue, as.numeric),
+    Gouv_clean = toupper(as.character(Gouvernorat))
+  ) %>%
+  mutate(Gouv_clean = ifelse(str_detect(Gouv_clean, "KEF"), "LE KEF", Gouv_clean))
+
+# Vérification
+str(pauv)
+summary(pauv)
+```
+
+---
+
+# Création des Variables Dérivées
+
+```{r derived_vars}
+pauv <- pauv %>%
+  mutate(
+    # Largeur de l'intervalle de confiance
+    Largeur_IC = IC95_haut - IC95_bas,
+    
+    # Différence absolue et relative
+    Diff = Taux_recensement - Taux_enquete,
+    Diff_relatif = Diff / Taux_recensement,
+    
+    # Cohérence : recensement dans l'IC de l'enquête ?
+    Recensement_dans_IC = (Taux_recensement >= IC95_bas) & (Taux_recensement <= IC95_haut)
+  )
+
+# Résumé de la cohérence
+table(pauv$Recensement_dans_IC)
+```
+
+**Résultat** : `r sum(pauv$Recensement_dans_IC)` gouvernorats sur 24 ont un taux de recensement cohérent avec l'intervalle de confiance de l'enquête.
+
+---
+
+# Statistiques Descriptives
+
+## Résumé global
+
+```{r stats_desc}
+summary_select <- pauv %>%
+  select(Taux_enquete, Taux_recensement, Diff, Diff_relatif, Largeur_IC)
+
+summary(summary_select)
+
+# Statistiques détaillées
+desc_stats <- summary_select %>%
+  summarise(
+    across(
+      everything(),
+      list(
+        mean = ~ mean(., na.rm = TRUE),
+        median = ~ median(., na.rm = TRUE),
+        sd = ~ sd(., na.rm = TRUE),
+        min = ~ min(., na.rm = TRUE),
+        max = ~ max(., na.rm = TRUE)
+      ),
+      .names = "{.col}_{.fn}"
+    )
+  )
+
+knitr::kable(desc_stats, digits = 2, caption = "Statistiques descriptives détaillées")
+```
+
+## Comparaison visuelle : Boxplots
+
+```{r boxplot, fig.height=5}
+pauv_long_taux <- pauv %>%
+  select(Gouvernorat, Taux_enquete, Taux_recensement) %>%
+  pivot_longer(cols = c(Taux_enquete, Taux_recensement), 
+               names_to = "Source", 
+               values_to = "Taux")
+
+ggplot(pauv_long_taux, aes(x = Source, y = Taux, fill = Source)) +
+  geom_boxplot(alpha = 0.7) +
+  scale_fill_manual(values = c("#D73027", "#4575B4")) +
+  labs(title = "Distribution des taux de pauvreté",
+       x = "Source", y = "Taux de pauvreté (%)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+---
+
+# Visualisations Comparatives
+
+## Barplot : Enquête vs Recensement
+
+```{r barplot, fig.height=8}
+pauv <- pauv %>%
+  mutate(Gouvernorat = fct_reorder(Gouvernorat, Taux_enquete))
+
+ggplot(pauv, aes(x = Gouvernorat)) +
+  geom_col(aes(y = Taux_enquete, fill = "Enquête"), alpha = 0.6) +
+  geom_point(aes(y = Taux_recensement, color = "Recensement"), size = 3) +
+  coord_flip() +
+  scale_fill_manual(values = "#D73027") +
+  scale_color_manual(values = "#4575B4") +
+  labs(title = "Taux de Pauvreté : Enquête (Barres) vs Recensement (Points)",
+       x = "", y = "Taux de Pauvreté (%)") +
+  theme_minimal()
+```
+
+## Nuage de points : Corrélation
+
+```{r scatterplot, fig.height=7}
+ggplot(pauv, aes(x = Taux_enquete, y = Taux_recensement)) +
+  geom_point(color = "darkblue", size = 3, alpha = 0.6) +
+  geom_smooth(method = "lm", color = "red", fill = "red", alpha = 0.2) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray50") +
+  geom_text(aes(label = Gouvernorat), hjust = -0.1, vjust = 0.5, size = 2.5,
+            data = pauv %>% slice_max(abs(Diff), n = 5)) +
+  labs(title = "Relation Enquête vs Recensement",
+       subtitle = "Ligne pointillée : égalité parfaite (y = x)",
+       x = "Taux Enquête (%)", y = "Taux Recensement (%)") +
+  theme_minimal()
+```
+
+---
+
+# Analyse de la Cohérence Statistique
+
+## Test des Intervalles de Confiance
+
+```{r ic_plot, fig.height=8}
+ggplot(pauv, aes(x = reorder(Gouvernorat, Taux_recensement), y = Taux_recensement)) +
+  geom_errorbar(aes(ymin = IC95_bas, ymax = IC95_haut), width = 0.4, color = "gray60") +
+  geom_point(aes(color = Recensement_dans_IC), size = 3) +
+  coord_flip() +
+  scale_color_manual(values = c("FALSE" = "red", "TRUE" = "forestgreen"),
+                     labels = c("Divergence", "Cohérent")) +
+  labs(title = "Cohérence Statistique : Recensement vs IC Enquête",
+       subtitle = "Rouge = Le recensement est hors de l'IC de l'enquête",
+       x = "", y = "Taux (%)") +
+  theme_minimal()
+```
+
+**Gouvernorats en divergence** (hors IC) :
+
+```{r divergence}
+pauv %>% 
+  filter(!Recensement_dans_IC) %>% 
+  select(Gouvernorat, Taux_enquete, Taux_recensement, Diff) %>%
+  arrange(desc(abs(Diff))) %>%
+  knitr::kable(digits = 2)
+```
+
+---
+
+# Modèle de Régression Linéaire
+
+## Ajustement du modèle
+
+```{r regression}
+modele_lin <- lm(Taux_recensement ~ Taux_enquete, data = pauv)
+summary(modele_lin)
+
+# Extraction des paramètres
+cor_pearson <- cor(pauv$Taux_enquete, pauv$Taux_recensement)
+r_squared <- summary(modele_lin)$r.squared
+```
+
+**Équation du modèle** :  
+\[
+\text{Taux Recensement} = `r round(coef(modele_lin)[1], 2)` + `r round(coef(modele_lin)[2], 2)` \times \text{Taux Enquête}
+\]
+
+**Interprétation** :
+
+- **Corrélation de Pearson** : `r round(cor_pearson, 3)` → Très forte corrélation
+- **R²** : `r round(r_squared, 3)` → Le modèle explique `r round(r_squared*100, 1)`% de la variance
+
+## Visualisation avec droite de régression
+
+```{r regression_plot, fig.height=7}
+ggplot(pauv, aes(x = Taux_enquete, y = Taux_recensement)) +
+  geom_point(color = "darkblue", size = 3, alpha = 0.6) +
+  geom_smooth(method = "lm", color = "red", fill = "red", alpha = 0.2, formula = y ~ x) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray50", linewidth = 1) +
+  labs(title = "Modèle Linéaire : Recensement vs Enquête",
+       subtitle = paste("R² =", round(r_squared, 3), "| Corrélation =", round(cor_pearson, 3)),
+       x = "Taux Enquête (%)", y = "Taux Recensement (%)") +
+  theme_minimal()
+```
+
+---
+
+# Test de la Différence Moyenne (Test t Apparié)
+
+```{r t_test}
+test_t <- t.test(pauv$Taux_recensement, pauv$Taux_enquete, paired = TRUE, conf.level = 0.95)
+test_t
+
+# Extraction des résultats
+mean_diff <- test_t$estimate
+p_value_t <- test_t$p.value
+```
+
+**Résultats** :
+
+- **Différence moyenne** : `r round(mean_diff, 2)` points de pourcentage
+- **p-value** : `r format.pval(p_value_t, digits = 3)`
+
+**Interprétation** :
+
+```{r interpretation, echo=FALSE, results='asis'}
+if (p_value_t < 0.05) {
+  cat("✗ **Résultat SIGNIFICATIF** (p < 0.05) :\n\n")
+  cat("Il y a une différence statistique réelle entre les deux mesures.\n\n")
+  if (mean_diff > 0) {
+    cat("Le Recensement tend à donner des taux **PLUS ÉLEVÉS** que l'Enquête.\n")
+  } else {
+    cat("Le Recensement tend à donner des taux **PLUS FAIBLES** que l'Enquête.\n")
+  }
+} else {
+  cat("✓ **Résultat NON SIGNIFICATIF** (p ≥ 0.05) :\n\n")
+  cat("La différence observée n'est **pas statistiquement différente de 0**.\n\n")
+  cat("Les deux méthodes ne présentent **pas de biais systématique** l'une par rapport à l'autre.\n")
+}
+```
+
+## Distribution des différences
+
+```{r diff_density, fig.height=5}
+ggplot(pauv, aes(x = Diff)) +
+  geom_density(fill = "lightblue", alpha = 0.5) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", linewidth = 1) +
+  geom_vline(xintercept = mean_diff, color = "darkblue", linewidth = 1) +
+  labs(title = "Distribution des Différences (Recensement - Enquête)",
+       subtitle = paste("Moyenne =", round(mean_diff, 2), "| p-value =", format.pval(p_value_t, digits = 3)),
+       x = "Différence (Points %)", y = "Densité") +
+  theme_minimal()
+```
+
+---
+
+# Cartographie des Disparités
+
+## Import et préparation des données spatiales
+
+```{r spatial_setup}
+# Import du GeoJSON
+gouv_sf <- st_read("decoupage.geojson.json", quiet = TRUE)
+
+# Harmonisation des noms
+gouv_sf <- gouv_sf %>%
+  mutate(Gouv_clean = toupper(gov_name_f)) %>%
+  mutate(Gouv_clean = case_when(
+    Gouv_clean == "SILIANA"       ~ "SELIANA",   
+    Gouv_clean == "KEF"           ~ "LE KEF",    
+    Gouv_clean == "MANUBAH"       ~ "MANOUBA",
+    Gouv_clean == "BÉJA"          ~ "BEJA",
+    Gouv_clean == "JENDOUBA"      ~ "JENDOUBA",
+    Gouv_clean == "KASSÉRINE"     ~ "KASSERINE",
+    Gouv_clean == "SIDI BOU ZID"  ~ "SIDI BOUZID",
+    Gouv_clean == "GABÈS"         ~ "GABES",
+    Gouv_clean == "MÉDENINE"      ~ "MEDNINE",
+    Gouv_clean == "TATAOUINE"     ~ "TATAOUINE",
+    TRUE ~ Gouv_clean
+  ))
+
+# Jointure avec les données de pauvreté
+carte_pauv <- gouv_sf %>% left_join(pauv, by = "Gouv_clean")
+
+# Définition des 5 districts
+districts_5 <- data.frame(
+  Gouvernorat = c("BIZERTE", "BEJA", "JENDOUBA", "LE KEF",
+                  "TUNIS", "ARIANA", "BEN AROUS", "MANOUBA", "ZAGHOUAN", "NABEUL",
+                  "SELIANA", "SOUSSE", "KASSERINE", "KAIROUAN", "MONASTIR", "MAHDIA",
+                  "TOZEUR", "SIDI BOUZID", "SFAX", "GAFSA",
+                  "TATAOUINE", "GABES", "MEDNINE", "KEBILI"),
+  District = c(rep("D1: Nord-Ouest", 4), rep("D2: Nord-Est/Tunis", 6),
+               rep("D3: Centre", 6), rep("D4: Sud-Ouest/Centre-Est", 4),
+               rep("D5: Sud-Est", 4))
+)
+districts_5$Gouv_clean <- toupper(districts_5$Gouvernorat)
+
+# Création de la géométrie des districts
+sf_districts <- gouv_sf %>%
+  left_join(districts_5, by = "Gouv_clean") %>%
+  st_make_valid() %>%
+  group_by(District) %>%
+  summarise(geometry = st_union(geometry)) %>%
+  left_join(
+    pauv %>% left_join(districts_5, by = "Gouv_clean") %>%
+      group_by(District) %>%
+      summarise(
+        Moyenne_Enquete = mean(Taux_enquete, na.rm = TRUE),
+        Moyenne_Recensement = mean(Taux_recensement, na.rm = TRUE),
+        .groups = "drop"
+      ),
+    by = "District"
+  )
+```
+
+## Cartes choroplèthes : Enquête et Recensement
+
+```{r cartes_enquete_recensement}
+# Activation du mode tmap
+tmap_mode("plot")
+
+# Carte 1 : Enquête
+m1 <- tm_shape(carte_pauv) +
+  tm_polygons("Taux_enquete", palette = "Reds", title = "Taux_enquete (%)",
+              breaks = seq(0, 35, by = 5)) +
+  tm_layout(title = "Pauvreté (Enquête)", frame = TRUE)
+
+# Carte 2 : Recensement
+m2 <- tm_shape(carte_pauv) +
+  tm_polygons("Taux_recensement", palette = "Blues", title = "Taux_recensement (%)",
+              breaks = seq(0, 35, by = 5)) +
+  tm_layout(title = "Pauvreté (Recensement)", frame = TRUE)
+
+# Affichage côte à côte
+tmap_arrange(m1, m2)
+```
+
+**Figure** : Répartition géographique des taux de pauvreté. À gauche : données de l'Enquête. À droite : données du Recensement.
+
+## Carte des divergences
+
+```{r carte_difference}
+# Créer une variable pour les divergences avec seuil statistique
+carte_pauv <- carte_pauv %>%
+  mutate(
+    Coherence = Recensement_dans_IC,
+    Diff_cat = case_when(
+      Diff > 5 ~ "Écart > 5pts",
+      Diff >= 0 ~ "0 ≤ Écart ≤ 5pts",
+      Diff >= -5 ~ "-5pts ≤ Écart < 0",
+      TRUE ~ "Écart < -5pts"
+    )
+  )
+
+# Carte des différences
+tm_shape(carte_pauv) +
+  tm_polygons("Diff", palette = "RdYlBu", title = "Différence (pts %)",
+              midpoint = 0, breaks = seq(-6, 6, by = 2)) +
+  tm_layout(title = "Écart Recensement - Enquête", frame = TRUE)
+```
+
+**Figure** : Écart entre les taux du Recensement et de l'Enquête par gouvernorat. Les zones oranges indiquent que le Recensement mesure des taux plus élevés que l'Enquête. Les zones violettes indiquent l'inverse.
+
+## Carte de cohérence statistique
+
+```{r carte_coherence}
+# Créer une palette pour cohérence
+carte_pauv <- carte_pauv %>%
+  mutate(Coherence_char = ifelse(Coherence, "Cohérent", "Divergence"))
+
+tm_shape(carte_pauv) +
+  tm_polygons("Coherence_char", palette = c("Cohérent" = "forestgreen", "Divergence" = "red"),
+              title = "Cohérence") +
+  tm_text("Gouv_clean", size = 0.5, fontface = "bold") +
+  tm_layout(title = "Validité Statistique", frame = TRUE)
+```
+
+**Figure** : Validité statistique. En vert : le taux du Recensement est cohérent avec l'intervalle de confiance de l'Enquête. En rouge : divergence significative.
+
+---
+
+# Analyse par Districts (5 Régions)
+
+## Tableau des districts
+
+```{r table_districts}
+pauv_dist_data <- pauv %>%
+  left_join(districts_5, by = "Gouv_clean") %>%
+  group_by(District) %>%
+  summarise(
+    Moyenne_Enquete = mean(Taux_enquete, na.rm = TRUE),
+    Moyenne_Recensement = mean(Taux_recensement, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+knitr::kable(pauv_dist_data, digits = 2, caption = "Taux moyens de pauvreté par District")
+```
+
+## Cartes des Districts
+
+```{r cartes_districts}
+# Carte 1 : Districts Enquête
+d1 <- tm_shape(sf_districts) +
+  tm_polygons("Moyenne_Enquete", palette = "Reds", title = "Taux moyen (%)",
+              breaks = seq(5, 30, by = 5)) +
+  tm_text("District", size = 0.6, fontface = "bold") +
+  tm_layout(title = "Pauvreté par District (Enquête)", frame = TRUE)
+
+# Carte 2 : Districts Recensement
+d2 <- tm_shape(sf_districts) +
+  tm_polygons("Moyenne_Recensement", palette = "Blues", title = "Taux moyen (%)",
+              breaks = seq(5, 30, by = 5)) +
+  tm_text("District", size = 0.6, fontface = "bold") +
+  tm_layout(title = "Pauvreté par District (Recensement)", frame = TRUE)
+
+# Affichage côte à côte
+tmap_arrange(d1, d2)
+```
+
+**Figure** : Taux moyens de pauvreté par District. À gauche : Enquête. À droite : Recensement. Le découpage en 5 Districts révèle des disparités régionales marquées : le Nord-Ouest (D1) et le Centre (D3) sont les plus pauvres, tandis que le Nord-Est/Tunis (D2) est le moins touché.
+
+---
+
+# Aperçu générale
+
+## Principaux résultats
+
+1. **Corrélation forte** entre enquête et recensement (r = `r round(cor_pearson, 3)`)
+2. **`r sum(!pauv$Recensement_dans_IC)` gouvernorats** présentent des divergences significatives
+3. **Pas de biais systématique** global (p = `r format.pval(p_value_t, digits = 3)`)
+4. **Disparités régionales** : le Nord-Est/Tunis moins pauvre que l'intérieur (Centre, Nord-Ouest, Sud)
+
+## Recommandations
+
+- Investiguer les gouvernorats en **divergence** (KAIROUAN, BEJA, MAHDIA, MEDNINE, TATAOUINE)
+- Harmoniser les **méthodologies** de collecte de données
+- Utiliser les **cartes** pour cibler les politiques sociales
+
+Les résultats montrent que malgré quelques divergences locales, les deux méthodes convergent globalement, validant ainsi la robustesse des estimations de pauvreté en Tunisie.
+
+---
+
+# Conclusion
+
+Cette analyse comparative des taux de pauvreté en Tunisie au niveau des 24 gouvernorats a permis d'évaluer la cohérence entre l'Enquête Nationale (méthode par échantillonnage) et le Recensement Général (méthode exhaustive). Les résultats révèlent une forte convergence globale entre ces deux sources, avec une corrélation de Pearson de `r round(cor_pearson, 3)` et un coefficient de détermination R² élevé. Le test t apparié (p = `r format.pval(p_value_t, digits=3)`) confirme l'absence de biais systématique significatif entre les deux méthodes.
+
+Cependant, des divergences localisées persistent dans `r sum(!pauv$Recensement_dans_IC)` gouvernorats où les taux du Recensement se situent hors des intervalles de confiance de l'Enquête, notamment à Kairouan, Béja, Mahdia, Médenine et Tataouine. L'analyse spatiale par districts met également en évidence des disparités régionales marquées : le Nord-Est (incluant Tunis) affiche les taux les plus faibles, tandis que le Nord-Ouest et le Centre présentent les niveaux de pauvreté les plus élevés.
+
+Ces résultats suggèrent trois recommandations majeures : investiguer les causes des divergences observées dans certains gouvernorats, harmoniser les méthodologies de collecte entre les deux sources, et utiliser les cartographies produites pour cibler géographiquement les politiques sociales. En conclusion, cette étude valide la robustesse des estimations de pauvreté en Tunisie et fournit une base solide pour orienter les interventions visant à réduire les inégalités territoriales.
+
+---
+
+**Auteur** : Mazzez Mohamed Amine  
+**Date** : `r Sys.Date()`  
+**Outils** : R 4.5.1, RStudio, tidyverse, sf, tmap

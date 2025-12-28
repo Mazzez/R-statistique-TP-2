@@ -1,0 +1,527 @@
+---
+title: "Analyse des Disparités de Pauvreté en Tunisie"
+subtitle: "Comparaison Enquête Nationale vs Recensement Général (2023)"
+author: "Mazzez Mohamed Amine"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: flatly # tu peux le Changer par "cerulean", "cosmo", "darkly", "yeti", "superhero", etc.
+    highlight: tango
+    code_folding: show
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  warning = FALSE, 
+  message = FALSE, 
+  fig.align = "center",
+  fig.width = 10,
+  fig.height = 8,
+  out.width = "100%"
+)
+
+# Options globales
+options(scipen = 999)
+```
+
+# Introduction
+
+## Contexte
+
+Ce rapport présente une analyse statistique et géographique approfondie des **taux de pauvreté en Tunisie** au niveau des **24 gouvernorats**. L'objectif principal est de **comparer deux sources de données majeures** :
+
+1. **L'Enquête Nationale sur le Budget, la Consommation et le Niveau de Vie** (méthode par échantillon)
+2. **Le Recensement Général de la Population et de l'Habitat** (méthode exhaustive)
+
+## Objectifs
+
+- Évaluer la **cohérence statistique** entre les deux mesures
+- Identifier les **gouvernorats où les écarts sont significatifs**
+- Cartographier les **disparités spatiales de la pauvreté**
+- Analyser les **5 Districts administratifs** (découpage régional)
+- Tester l'existence d'un **biais systématique** entre les sources
+
+---
+
+# Préparation de l'Environnement
+
+```{r packages}
+# Nettoyage de la session
+rm(list = ls())
+graphics.off()
+
+# Chargement des packages
+library(tidyverse)  # Manipulation de données et visualisation
+library(sf)         # Données spatiales
+library(tmap)       # Cartographie thématique
+library(broom)      # Export des résultats de régression
+
+# Désactiver s2 pour éviter les erreurs géométriques
+sf::sf_use_s2(FALSE)
+```
+
+---
+
+# Import et Nettoyage des Données
+
+## Import des données brutes
+
+```{r import}
+# Import du fichier CSV
+raw_pauv <- read.csv2("pauvrete.csv", 
+                      sep = ";", 
+                      dec = ".", 
+                      header = FALSE, 
+                      stringsAsFactors = FALSE)
+
+# Aperçu
+head(raw_pauv, 10)
+dim(raw_pauv)
+```
+
+## Construction du DataFrame propre
+
+```{r cleaning}
+# Suppression des 3 premières lignes (en-têtes complexes)
+pauv <- raw_pauv[-c(1:3), ]
+
+# Renommage des colonnes
+colnames(pauv) <- c("Gouvernorat", 
+                    "Taux_enquete", "Ecart_type_enquete", "IC95_bas", "IC95_haut", 
+                    "Taux_recensement", "Ecart_type_recensement", "Diff_absolue")
+
+# Conversion des types
+pauv <- pauv %>%
+  mutate(
+    Gouvernorat = factor(Gouvernorat),
+    across(Taux_enquete:Diff_absolue, as.numeric),
+    Gouv_clean = toupper(as.character(Gouvernorat))
+  ) %>%
+  mutate(Gouv_clean = ifelse(str_detect(Gouv_clean, "KEF"), "LE KEF", Gouv_clean))
+
+# Vérification
+str(pauv)
+summary(pauv)
+```
+
+---
+
+# Création des Variables Dérivées
+
+```{r derived_vars}
+pauv <- pauv %>%
+  mutate(
+    # Largeur de l'intervalle de confiance
+    Largeur_IC = IC95_haut - IC95_bas,
+    
+    # Différence absolue et relative
+    Diff = Taux_recensement - Taux_enquete,
+    Diff_relatif = Diff / Taux_recensement,
+    
+    # Cohérence : recensement dans l'IC de l'enquête ?
+    Recensement_dans_IC = (Taux_recensement >= IC95_bas) & (Taux_recensement <= IC95_haut)
+  )
+
+# Résumé de la cohérence
+table(pauv$Recensement_dans_IC)
+```
+
+**Résultat** : `r sum(pauv$Recensement_dans_IC)` gouvernorats sur 24 ont un taux de recensement cohérent avec l'intervalle de confiance de l'enquête.
+
+---
+
+# Statistiques Descriptives
+
+## Résumé global
+
+```{r stats_desc}
+summary_select <- pauv %>%
+  select(Taux_enquete, Taux_recensement, Diff, Diff_relatif, Largeur_IC)
+
+summary(summary_select)
+
+# Statistiques détaillées
+desc_stats <- summary_select %>%
+  summarise(
+    across(
+      everything(),
+      list(
+        mean = ~ mean(., na.rm = TRUE),
+        median = ~ median(., na.rm = TRUE),
+        sd = ~ sd(., na.rm = TRUE),
+        min = ~ min(., na.rm = TRUE),
+        max = ~ max(., na.rm = TRUE)
+      ),
+      .names = "{.col}_{.fn}"
+    )
+  )
+
+knitr::kable(desc_stats, digits = 2, caption = "Statistiques descriptives détaillées")
+```
+
+## Comparaison visuelle : Boxplots
+
+```{r boxplot, fig.height=5}
+pauv_long_taux <- pauv %>%
+  select(Gouvernorat, Taux_enquete, Taux_recensement) %>%
+  pivot_longer(cols = c(Taux_enquete, Taux_recensement), 
+               names_to = "Source", 
+               values_to = "Taux")
+
+ggplot(pauv_long_taux, aes(x = Source, y = Taux, fill = Source)) +
+  geom_boxplot(alpha = 0.7) +
+  scale_fill_manual(values = c("#D73027", "#4575B4")) +
+  labs(title = "Distribution des taux de pauvreté",
+       x = "Source", y = "Taux de pauvreté (%)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+---
+
+# Visualisations Comparatives
+
+## Barplot : Enquête vs Recensement
+
+```{r barplot, fig.height=8}
+pauv <- pauv %>%
+  mutate(Gouvernorat = fct_reorder(Gouvernorat, Taux_enquete))
+
+ggplot(pauv, aes(x = Gouvernorat)) +
+  geom_col(aes(y = Taux_enquete, fill = "Enquête"), alpha = 0.6) +
+  geom_point(aes(y = Taux_recensement, color = "Recensement"), size = 3) +
+  coord_flip() +
+  scale_fill_manual(values = "#D73027") +
+  scale_color_manual(values = "#4575B4") +
+  labs(title = "Taux de Pauvreté : Enquête (Barres) vs Recensement (Points)",
+       x = "", y = "Taux de Pauvreté (%)") +
+  theme_minimal()
+```
+
+## Nuage de points : Corrélation
+
+```{r scatterplot, fig.height=7}
+ggplot(pauv, aes(x = Taux_enquete, y = Taux_recensement)) +
+  geom_point(color = "darkblue", size = 3, alpha = 0.6) +
+  geom_smooth(method = "lm", color = "red", fill = "red", alpha = 0.2) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray50") +
+  geom_text(aes(label = Gouvernorat), hjust = -0.1, vjust = 0.5, size = 2.5,
+            data = pauv %>% slice_max(abs(Diff), n = 5)) +
+  labs(title = "Relation Enquête vs Recensement",
+       subtitle = "Ligne pointillée : égalité parfaite (y = x)",
+       x = "Taux Enquête (%)", y = "Taux Recensement (%)") +
+  theme_minimal()
+```
+
+---
+
+# Analyse de la Cohérence Statistique
+
+## Test des Intervalles de Confiance
+
+```{r ic_plot, fig.height=8}
+ggplot(pauv, aes(x = reorder(Gouvernorat, Taux_recensement), y = Taux_recensement)) +
+  geom_errorbar(aes(ymin = IC95_bas, ymax = IC95_haut), width = 0.4, color = "gray60") +
+  geom_point(aes(color = Recensement_dans_IC), size = 3) +
+  coord_flip() +
+  scale_color_manual(values = c("FALSE" = "red", "TRUE" = "forestgreen"),
+                     labels = c("Divergence", "Cohérent")) +
+  labs(title = "Cohérence Statistique : Recensement vs IC Enquête",
+       subtitle = "Rouge = Le recensement est hors de l'IC de l'enquête",
+       x = "", y = "Taux (%)") +
+  theme_minimal()
+```
+
+**Gouvernorats en divergence** (hors IC) :
+
+```{r divergence}
+pauv %>% 
+  filter(!Recensement_dans_IC) %>% 
+  select(Gouvernorat, Taux_enquete, Taux_recensement, Diff) %>%
+  arrange(desc(abs(Diff))) %>%
+  knitr::kable(digits = 2)
+```
+
+---
+
+# Modèle de Régression Linéaire
+
+## Ajustement du modèle
+
+```{r regression}
+modele_lin <- lm(Taux_recensement ~ Taux_enquete, data = pauv)
+summary(modele_lin)
+
+# Extraction des paramètres
+cor_pearson <- cor(pauv$Taux_enquete, pauv$Taux_recensement)
+r_squared <- summary(modele_lin)$r.squared
+```
+
+**Équation du modèle** :  
+\[
+\text{Taux Recensement} = `r round(coef(modele_lin)[1], 2)` + `r round(coef(modele_lin)[2], 2)` \times \text{Taux Enquête}
+\]
+
+**Interprétation** :
+
+- **Corrélation de Pearson** : `r round(cor_pearson, 3)` → Très forte corrélation
+- **R²** : `r round(r_squared, 3)` → Le modèle explique `r round(r_squared*100, 1)`% de la variance
+
+## Visualisation avec droite de régression
+
+```{r regression_plot, fig.height=7}
+ggplot(pauv, aes(x = Taux_enquete, y = Taux_recensement)) +
+  geom_point(color = "darkblue", size = 3, alpha = 0.6) +
+  geom_smooth(method = "lm", color = "red", fill = "red", alpha = 0.2, formula = y ~ x) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray50", linewidth = 1) +
+  labs(title = "Modèle Linéaire : Recensement vs Enquête",
+       subtitle = paste("R² =", round(r_squared, 3), "| Corrélation =", round(cor_pearson, 3)),
+       x = "Taux Enquête (%)", y = "Taux Recensement (%)") +
+  theme_minimal()
+```
+
+---
+
+# Test de la Différence Moyenne (Test t Apparié)
+
+```{r t_test}
+test_t <- t.test(pauv$Taux_recensement, pauv$Taux_enquete, paired = TRUE, conf.level = 0.95)
+test_t
+
+# Extraction des résultats
+mean_diff <- test_t$estimate
+p_value_t <- test_t$p.value
+```
+
+**Résultats** :
+
+- **Différence moyenne** : `r round(mean_diff, 2)` points de pourcentage
+- **p-value** : `r format.pval(p_value_t, digits = 3)`
+
+**Interprétation** :
+
+```{r interpretation, echo=FALSE, results='asis'}
+if (p_value_t < 0.05) {
+  cat("✗ **Résultat SIGNIFICATIF** (p < 0.05) :\n\n")
+  cat("Il y a une différence statistique réelle entre les deux mesures.\n\n")
+  if (mean_diff > 0) {
+    cat("Le Recensement tend à donner des taux **PLUS ÉLEVÉS** que l'Enquête.\n")
+  } else {
+    cat("Le Recensement tend à donner des taux **PLUS FAIBLES** que l'Enquête.\n")
+  }
+} else {
+  cat("✓ **Résultat NON SIGNIFICATIF** (p ≥ 0.05) :\n\n")
+  cat("La différence observée n'est **pas statistiquement différente de 0**.\n\n")
+  cat("Les deux méthodes ne présentent **pas de biais systématique** l'une par rapport à l'autre.\n")
+}
+```
+
+## Distribution des différences
+
+```{r diff_density, fig.height=5}
+ggplot(pauv, aes(x = Diff)) +
+  geom_density(fill = "lightblue", alpha = 0.5) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", linewidth = 1) +
+  geom_vline(xintercept = mean_diff, color = "darkblue", linewidth = 1) +
+  labs(title = "Distribution des Différences (Recensement - Enquête)",
+       subtitle = paste("Moyenne =", round(mean_diff, 2), "| p-value =", format.pval(p_value_t, digits = 3)),
+       x = "Différence (Points %)", y = "Densité") +
+  theme_minimal()
+```
+
+---
+
+# Cartographie des Disparités
+
+## Import et préparation des données spatiales
+
+```{r spatial_setup}
+# Import du GeoJSON
+gouv_sf <- st_read("decoupage.geojson.json", quiet = TRUE)
+
+# Harmonisation des noms
+gouv_sf <- gouv_sf %>%
+  mutate(Gouv_clean = toupper(gov_name_f)) %>%
+  mutate(Gouv_clean = case_when(
+    Gouv_clean == "SILIANA"       ~ "SELIANA",   
+    Gouv_clean == "KEF"           ~ "LE KEF",    
+    Gouv_clean == "MANUBAH"       ~ "MANOUBA",
+    Gouv_clean == "BÉJA"          ~ "BEJA",
+    Gouv_clean == "JENDOUBA"      ~ "JENDOUBA",
+    Gouv_clean == "KASSÉRINE"     ~ "KASSERINE",
+    Gouv_clean == "SIDI BOU ZID"  ~ "SIDI BOUZID",
+    Gouv_clean == "GABÈS"         ~ "GABES",
+    Gouv_clean == "MÉDENINE"      ~ "MEDNINE",
+    Gouv_clean == "TATAOUINE"     ~ "TATAOUINE",
+    TRUE ~ Gouv_clean
+  ))
+
+# Jointure avec les données de pauvreté
+carte_pauv <- gouv_sf %>% left_join(pauv, by = "Gouv_clean")
+
+# Définition des 5 districts
+districts_5 <- data.frame(
+  Gouvernorat = c("BIZERTE", "BEJA", "JENDOUBA", "LE KEF",
+                  "TUNIS", "ARIANA", "BEN AROUS", "MANOUBA", "ZAGHOUAN", "NABEUL",
+                  "SELIANA", "SOUSSE", "KASSERINE", "KAIROUAN", "MONASTIR", "MAHDIA",
+                  "TOZEUR", "SIDI BOUZID", "SFAX", "GAFSA",
+                  "TATAOUINE", "GABES", "MEDNINE", "KEBILI"),
+  District = c(rep("D1: Nord-Ouest", 4), rep("D2: Nord-Est/Tunis", 6),
+               rep("D3: Centre", 6), rep("D4: Sud-Ouest/Centre-Est", 4),
+               rep("D5: Sud-Est", 4))
+)
+districts_5$Gouv_clean <- toupper(districts_5$Gouvernorat)
+
+# Création de la géométrie des districts
+sf_districts <- gouv_sf %>%
+  left_join(districts_5, by = "Gouv_clean") %>%
+  st_make_valid() %>%
+  group_by(District) %>%
+  summarise(geometry = st_union(geometry)) %>%
+  left_join(
+    pauv %>% left_join(districts_5, by = "Gouv_clean") %>%
+      group_by(District) %>%
+      summarise(
+        Moyenne_Enquete = mean(Taux_enquete, na.rm = TRUE),
+        Moyenne_Recensement = mean(Taux_recensement, na.rm = TRUE),
+        .groups = "drop"
+      ),
+    by = "District"
+  )
+```
+
+## Cartes choroplèthes : Enquête et Recensement
+
+```{r cartes_enquete_recensement}
+# Activation du mode tmap
+tmap_mode("plot")
+
+# Carte 1 : Enquête
+m1 <- tm_shape(carte_pauv) +
+  tm_polygons("Taux_enquete", palette = "Reds", title = "Taux_enquete (%)",
+              breaks = seq(0, 35, by = 5)) +
+  tm_layout(title = "Pauvreté (Enquête)", frame = TRUE)
+
+# Carte 2 : Recensement
+m2 <- tm_shape(carte_pauv) +
+  tm_polygons("Taux_recensement", palette = "Blues", title = "Taux_recensement (%)",
+              breaks = seq(0, 35, by = 5)) +
+  tm_layout(title = "Pauvreté (Recensement)", frame = TRUE)
+
+# Affichage côte à côte
+tmap_arrange(m1, m2)
+```
+
+**Figure** : Répartition géographique des taux de pauvreté. À gauche : données de l'Enquête. À droite : données du Recensement.
+
+## Carte des divergences
+
+```{r carte_difference}
+# Créer une variable pour les divergences avec seuil statistique
+carte_pauv <- carte_pauv %>%
+  mutate(
+    Coherence = Recensement_dans_IC,
+    Diff_cat = case_when(
+      Diff > 5 ~ "Écart > 5pts",
+      Diff >= 0 ~ "0 ≤ Écart ≤ 5pts",
+      Diff >= -5 ~ "-5pts ≤ Écart < 0",
+      TRUE ~ "Écart < -5pts"
+    )
+  )
+
+# Carte des différences
+tm_shape(carte_pauv) +
+  tm_polygons("Diff", palette = "RdYlBu", title = "Différence (pts %)",
+              midpoint = 0, breaks = seq(-6, 6, by = 2)) +
+  tm_layout(title = "Écart Recensement - Enquête", frame = TRUE)
+```
+
+**Figure** : Écart entre les taux du Recensement et de l'Enquête par gouvernorat. Les zones oranges indiquent que le Recensement mesure des taux plus élevés que l'Enquête. Les zones violettes indiquent l'inverse.
+
+## Carte de cohérence statistique
+
+```{r carte_coherence}
+# Créer une palette pour cohérence
+carte_pauv <- carte_pauv %>%
+  mutate(Coherence_char = ifelse(Coherence, "Cohérent", "Divergence"))
+
+tm_shape(carte_pauv) +
+  tm_polygons("Coherence_char", palette = c("Cohérent" = "forestgreen", "Divergence" = "red"),
+              title = "Cohérence") +
+  tm_text("Gouv_clean", size = 0.5, fontface = "bold") +
+  tm_layout(title = "Validité Statistique", frame = TRUE)
+```
+
+**Figure** : Validité statistique. En vert : le taux du Recensement est cohérent avec l'intervalle de confiance de l'Enquête. En rouge : divergence significative.
+
+---
+
+# Analyse par Districts (5 Régions)
+
+## Tableau des districts
+
+```{r table_districts}
+pauv_dist_data <- pauv %>%
+  left_join(districts_5, by = "Gouv_clean") %>%
+  group_by(District) %>%
+  summarise(
+    Moyenne_Enquete = mean(Taux_enquete, na.rm = TRUE),
+    Moyenne_Recensement = mean(Taux_recensement, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+knitr::kable(pauv_dist_data, digits = 2, caption = "Taux moyens de pauvreté par District")
+```
+
+## Cartes des Districts
+
+```{r cartes_districts}
+# Carte 1 : Districts Enquête
+d1 <- tm_shape(sf_districts) +
+  tm_polygons("Moyenne_Enquete", palette = "Reds", title = "Taux moyen (%)",
+              breaks = seq(5, 30, by = 5)) +
+  tm_text("District", size = 0.6, fontface = "bold") +
+  tm_layout(title = "Pauvreté par District (Enquête)", frame = TRUE)
+
+# Carte 2 : Districts Recensement
+d2 <- tm_shape(sf_districts) +
+  tm_polygons("Moyenne_Recensement", palette = "Blues", title = "Taux moyen (%)",
+              breaks = seq(5, 30, by = 5)) +
+  tm_text("District", size = 0.6, fontface = "bold") +
+  tm_layout(title = "Pauvreté par District (Recensement)", frame = TRUE)
+
+# Affichage côte à côte
+tmap_arrange(d1, d2)
+```
+
+**Figure** : Taux moyens de pauvreté par District. À gauche : Enquête. À droite : Recensement. Le découpage en 5 Districts révèle des disparités régionales marquées : le Nord-Ouest (D1) et le Centre (D3) sont les plus pauvres, tandis que le Nord-Est/Tunis (D2) est le moins touché.
+
+---
+
+# Conclusion
+
+## Principaux résultats
+
+1. **Corrélation forte** entre enquête et recensement (r = `r round(cor_pearson, 3)`)
+2. **`r sum(!pauv$Recensement_dans_IC)` gouvernorats** présentent des divergences significatives
+3. **Pas de biais systématique** global (p = `r format.pval(p_value_t, digits = 3)`)
+4. **Disparités régionales** : le Nord-Est/Tunis moins pauvre que l'intérieur (Centre, Nord-Ouest, Sud)
+
+## Recommandations
+
+- Investiguer les gouvernorats en **divergence** (KAIROUAN, BEJA, MAHDIA, MEDNINE, TATAOUINE)
+- Harmoniser les **méthodologies** de collecte de données
+- Utiliser les **cartes** pour cibler les politiques sociales
+
+Les résultats montrent que malgré quelques divergences locales, les deux méthodes convergent globalement, validant ainsi la robustesse des estimations de pauvreté en Tunisie.
+
+---
+
+**Auteur** : Mazzez Mohamed Amine   
+**Date** : `r Sys.Date()`  
+**Outils** : R 4.5.1, RStudio, tidyverse, sf, tmap
